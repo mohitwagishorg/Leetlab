@@ -11,9 +11,7 @@ export const executeCode = async (req, res) => {
       req.body;
 
     const userId = req.user.id;
-
-    // Validate test cases
-
+    //Validate Test Cases
     if (
       !Array.isArray(stdin) ||
       stdin.length === 0 ||
@@ -23,25 +21,26 @@ export const executeCode = async (req, res) => {
       return res.status(400).json({ error: "Invalid or Missing test cases" });
     }
 
-    // 2. Prepare each test cases for judge0 batch submission
+    //2 Prepare each Testcases for judge0 batch submissions
+
     const submissions = stdin.map((input) => ({
       source_code,
       language_id,
       stdin: input,
     }));
 
-    // 3. Send batch of submissions to judge0
+    //3. Send batch of submissions to judge0
     const submitResponse = await submitBatch(submissions);
 
     const tokens = submitResponse.map((res) => res.token);
 
-    // 4. Poll judge0 for results of all submitted test cases
+    //4. Poll judge0 for results of all submitted test cases
     const results = await pollBatchResults(tokens);
 
-    console.log("Result-------------");
+    console.log("Result--------------");
     console.log(results);
 
-    //  Analyze test case results
+    //Analye test case results
     let allPassed = true;
     const detailedResults = results.map((result, i) => {
       const stdout = result.stdout?.trim();
@@ -62,17 +61,17 @@ export const executeCode = async (req, res) => {
         time: result.time ? `${result.time} s` : undefined,
       };
 
-      // console.log(`Testcase #${i+1}`);
-      // console.log(`Input for testcase #${i+1}: ${stdin[i]}`)
-      // console.log(`Expected Output for testcase #${i+1}: ${expected_output}`)
-      // console.log(`Actual output for testcase #${i+1}: ${stdout}`)
+      // console.log(`Testcase #${i + 1}`);
+      // console.log(`Input ${stdin[i]}`);
+      // console.log(`Expected Output for testcase ${expected_output}`);
+      // console.log(`Actual output ${stdout}`);
 
-      // console.log(`Matched testcase #${i+1}: ${passed}`)
+      // console.log(`Matched ${passed}`);
     });
 
     console.log(detailedResults);
 
-    // store submission summary
+    //Store submission summary
     const submission = await db.submission.create({
       data: {
         userId,
@@ -97,7 +96,7 @@ export const executeCode = async (req, res) => {
       },
     });
 
-    // If All passed = true mark problem as solved for the current user
+    //If all passed = true mark problem solved for the current user
     if (allPassed) {
       await db.problemSolved.upsert({
         where: {
@@ -113,8 +112,8 @@ export const executeCode = async (req, res) => {
         },
       });
     }
-    // 8. Save individual test case results  using detailedResult
 
+    //8. Save individual test case results
     const testCaseResults = detailedResults.map((result) => ({
       submissionId: submission.id,
       testCase: result.testCase,
@@ -140,7 +139,7 @@ export const executeCode = async (req, res) => {
         testCases: true,
       },
     });
-    //
+
     res.status(200).json({
       success: true,
       message: "Code Executed! Successfully!",
@@ -148,6 +147,6 @@ export const executeCode = async (req, res) => {
     });
   } catch (error) {
     console.error("Error executing code:", error.message);
-    res.status(500).json({ error: "Failed to execute code" });
+    res.status(500).json({ error: "Failed to submit code" });
   }
 };
